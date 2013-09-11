@@ -286,15 +286,25 @@ void ElroTransmitter::sendSignal(byte systemCode, char device, boolean on) {
 unsigned long ElroTransmitter::getTelegram(byte systemCode, char device, boolean on) {
 	byte trits[12];
 
-	device-=65;
+	// The remote controls use only a subset of devices, where the
+	// device number always has just a single 1 bit (e.g., 'A' is 1,
+	// 'B' is 2, 'C' is 4, etc.). This requires just a single one of
+	// the ABCDE switches on the receivers to be on. However, the
+	// receivers support full 5-bit addressing, which you can also
+	// use with this function if you just pass a number between 0-31
+	// instead of a letter.
+	if (device >= 'A' && device <= 'E')
+		device = 1 << (device - 'A');
 
 	for (byte i=0; i<5; i++) {
 		//trits 0-4 contain address (2^5=32 addresses)
 		trits[i]=(systemCode & 1)?0:2;
 		systemCode>>=1;
 
-		//trits 5-9 contain device. Only one trit has value 0, others have 2 (float)!
-		trits[i+5]=(i==device?0:2);
+		// trits 5-9 contain device (2^5=32 devices)
+		trits[i+5]=(device & 1)?0:2;
+		device>>=1;
+
 	}
 
 	//switch on or off
